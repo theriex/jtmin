@@ -29,6 +29,13 @@
     }
 
 
+    if (!String.prototype.endsWith) {
+        String.prototype.endsWith = function (suffix) {
+            return this.indexOf(suffix, this.length - suffix.length) !== -1;
+        };
+    }
+
+
     if (!Array.prototype.indexOf) {
         Array.prototype.indexOf = function (searchElement) {
             var i;
@@ -175,6 +182,23 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
         if (elem) {
             return elem[field];
         }
+    };
+
+
+    uo.saferef = function (object, fieldspec) {
+        var fields, i;
+        if (!object) {
+            return null;
+        }
+        fields = fieldspec.split(".?");
+        for (i = 0; i < fields.length; i += 1) {
+            if (object && object[fields[i]]) {
+                object = object[fields[i]];
+            } else {
+                return null;
+            }
+        }
+        return object;
     };
 
 

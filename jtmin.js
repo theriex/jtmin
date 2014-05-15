@@ -1,4 +1,4 @@
-/*global alert: false, console: false, document: false, window: false, XMLHttpRequest: false, JSON: false, escape: false, unescape: false, setTimeout: false */
+/*global alert: false, console: false, document: false, window: false, XMLHttpRequest: false, JSON: false, escape: false, unescape: false, setTimeout: false, navigator: false */
 
 ////////////////////////////////////////
 // Just The Mods I Need
@@ -174,6 +174,17 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
             return "";
         }
         return String(string);
+    };
+
+
+    uo.safeint = function (val) {
+        if (!val) {
+            val = 0;
+        }
+        if (typeof val !== "number") {
+            val = parseInt(val, 10);
+        }
+        return val;
     };
 
 
@@ -433,6 +444,36 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     };
 
 
+    //Some things don't work in older browsers and need code
+    //workarounds to degrade gracefully.  Like not scaling fixed
+    //background images.  IE8 is a known problem, but some older stock
+    //android browsers are also problematic.  This function identifies
+    //the more common browsers known to be consistently updated.
+    uo.isLowFuncBrowser = function () {
+        var nav;
+        if (navigator) {
+            nav = navigator;
+            // alert("appCodeName: " + nav.appCodeName + "\n" +
+            //       "appName: " + nav.appName + "\n" +
+            //       "appVersion: " + nav.appVersion + "\n" +
+            //       "platform: " + nav.platform + "\n" +
+            //       "userAgent: " + nav.userAgent + "\n");
+            if (nav.userAgent.indexOf("Firefox") >= 0) {
+                return false;
+            }
+            if (nav.userAgent.indexOf("Chrome") >= 0) {
+                return false;
+            }
+            if ((nav.userAgent.indexOf("Safari") >= 0) &&
+                    (nav.userAgent.indexOf("CyanogenMod") < 0) &&
+                    (nav.userAgent.indexOf("Android") < 0)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+
     ////////////////////////////////////////
     // event handling
     ////////////////////////////////////////
@@ -589,7 +630,7 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
             if (tac.length > 1) { //have attributes and/or content
                 frame.attrobj = tac[1];
                 //if plain object without length then treat as attributes
-                if (typeof frame.attrobj === 'object' &&
+                if (frame.attrobj && typeof frame.attrobj === 'object' &&
                         !frame.attrobj.length) {
                     for (name in frame.attrobj) {
                         if (frame.attrobj.hasOwnProperty(name)) {
@@ -726,6 +767,14 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
 
 
     //Wrapper for ajax call that returns an object from server JSON.
+    //
+    //A: On GAE local, it is possible to get a successful callback
+    //with no data. So xhr.readyState === 4 and xhr.status === 200,
+    //but there is no xhr.responseText.  That is followed by a second
+    //callback with xhr.responseText.  Rather than logging a JSON
+    //parse error for an empty string (and then chasing that down
+    //because it looks like the log is showing a problem) this case is
+    //trapped and ignored.  ep19apr14
     uo.call = function (method, url, data, success, failure,
                         lockobj, setup, timeoutms) {
         var jsonobj = JSON || window.JSON;
@@ -733,6 +782,10 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
             uo.err("JSON not supported, please use a modern browser");
         }
         uo.request(method, url, data, function (resp) {
+            if (!resp) {  //See comment A
+                //uo.log("Ignoring interim callback with empty data");
+                return;  //no data but didn't fail.  Wait for second callback.
+            }
             try {
                 resp = jsonobj.parse(resp);
             } catch (exception) {

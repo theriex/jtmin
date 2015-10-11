@@ -1,4 +1,6 @@
-/*global alert: false, console: false, document: false, window: false, XMLHttpRequest: false, JSON: false, escape: false, unescape: false, setTimeout: false, navigator: false */
+/*global alert, console, document, window, XMLHttpRequest, JSON, escape, unescape, setTimeout, navigator */
+
+/*jslint white, fudge, this, for */
 
 ////////////////////////////////////////
 // Just The Mods I Need
@@ -355,21 +357,21 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
         strval = strval.replace(/\:/g, "");
         strval = strval.replace(/\//g, "");
         strval = strval.replace(/\?/g, "");
-        strval = strval.replace(/\#/g, "");
+        strval = strval.replace(/#/g, "");
         strval = strval.replace(/\[/g, "");
         strval = strval.replace(/\]/g, "");
-        strval = strval.replace(/\@/g, "");
+        strval = strval.replace(/@/g, "");
         //URI reserved characters sub-delims
-        strval = strval.replace(/\!/g, "");
+        strval = strval.replace(/!/g, "");
         strval = strval.replace(/\$/g, "");
-        strval = strval.replace(/\&/g, "");
+        strval = strval.replace(/&/g, "");
         strval = strval.replace(/\'/g, "");
         strval = strval.replace(/\(/g, "");
         strval = strval.replace(/\)/g, "");
         strval = strval.replace(/\*/g, "");
         strval = strval.replace(/\+/g, "");
-        strval = strval.replace(/\,/g, "");
-        strval = strval.replace(/\;/g, "");
+        strval = strval.replace(/,/g, "");
+        strval = strval.replace(/;/g, "");
         strval = strval.replace(/\=/g, "");
         strval = strval.toLowerCase();
         return strval;
@@ -379,13 +381,35 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     uo.ISOString2Day = function (str) {
         var date, year, month, day;
         if (!str) {
-            return new Date();
+            str = new Date().toISOString();
         }
         year = parseInt(str.slice(0, 4), 10);
         month = parseInt(str.slice(5, 7), 10);
         day = parseInt(str.slice(8, 10), 10);
         date = new Date(year, (month - 1), day, 0, 0, 0, 0);
         return date;
+    };
+
+
+    uo.ISOString2Time = function (str) {
+        var date, year, month, day, hours, minutes, seconds;
+        if (!str) {
+            str = new Date().toISOString();
+        }
+        year = parseInt(str.slice(0, 4), 10);
+        month = parseInt(str.slice(5, 7), 10);
+        day = parseInt(str.slice(8, 10), 10);
+        hours = parseInt(str.slice(11, 13), 10);
+        minutes = parseInt(str.slice(14, 16), 10);
+        seconds = parseInt(str.slice(17, 19), 10);
+        date = new Date(year, (month - 1), day, hours, minutes, seconds, 0);
+        return date;
+    };
+
+
+    uo.tz2loc = function (date) {
+        var offset = new Date().getTimezoneOffset() * 60 * 1000 * -1;
+        return new Date(date.getTime() + offset);
     };
 
 
@@ -427,6 +451,24 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     ////////////////////////////////////////
     // value testing and manipulation
     ////////////////////////////////////////
+
+    uo.timewithin = function (timeval, units, count, comptime) {
+        var incr, deadline, testval;
+        incr = 60 * 60 * 1000;  //'hours'
+        if (units === 'days') {
+            incr *= 24;
+        }
+        if (!timeval || typeof timeval === "string") {
+            timeval = uo.ISOString2Time(timeval);
+        }
+        if (!comptime || typeof comptime === "string") {
+            comptime = uo.ISOString2Time(comptime);
+        }
+        deadline = timeval.getTime() + (incr * count);
+        testval = comptime.getTime();
+        return deadline > testval;
+    };
+
 
     //return true if the given text can be reasonably construed to be an
     //email address.
@@ -479,23 +521,21 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
 
     //return the given object field and values as html POST data
     uo.objdata = function (obj, skips) {
-        var str = "", name;
+        var str = "";
         if (!obj) {
             return "";
         }
         if (!skips) {
             skips = [];
         }
-        for (name in obj) {
-            if (obj.hasOwnProperty(name)) {
-                if (skips.indexOf(name) < 0) {
-                    if (str) {
-                        str += "&";
-                    }
-                    str += name + "=" + uo.enc(obj[name]);
+        Object.keys(obj).forEach(function (name) {
+            if (skips.indexOf(name) < 0) {
+                if (str) {
+                    str += "&";
                 }
+                str += name + "=" + uo.enc(obj[name]);
             }
-        }
+        });
         return str;
     };
 
@@ -718,7 +758,6 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     //all context in its own memoized stackframe param due to a mix of
     //paranoia and debugger bugs.
     uo.tac2html = function (tac, frame) {
-        var name;
         if (!frame) {
             frame = { html: "", elemtype: null, attrobj: null,
                       content: null, isHTMLTag: false, i: null};
@@ -739,15 +778,13 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
                 //if plain object without length then treat as attributes
                 if (frame.attrobj && typeof frame.attrobj === 'object' &&
                         !frame.attrobj.length) {
-                    for (name in frame.attrobj) {
-                        if (frame.attrobj.hasOwnProperty(name)) {
-                            if (frame.attrobj[name] !== undefined &&
-                                    frame.attrobj[name] !== null) {
-                                frame.html += " " + uo.tacattr(name) +
-                                    "=\"" + frame.attrobj[name] + "\"";
-                            }
+                    Object.keys(frame.attrobj).forEach(function (name) {
+                        if (frame.attrobj[name] !== undefined &&
+                            frame.attrobj[name] !== null) {
+                            frame.html += " " + uo.tacattr(name) +
+                                "=\"" + frame.attrobj[name] + "\"";
                         }
-                    }
+                    });
                 } else if (frame.attrobj) {  //treat as content
                     frame.content = frame.attrobj;
                 }
@@ -794,7 +831,8 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
             tempdiv.id = tempdivid;
             document.body.appendChild(tempdiv);
         }
-        now = start = new Date().getTime();
+        now = new Date().getTime();
+        start = now;
         while (now - start < delayms) {
             now = new Date().getTime();
             uo.out(tempdivid, "delay " + (now - start));
@@ -1038,5 +1076,3 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     };
 
 };
-
-

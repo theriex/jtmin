@@ -811,7 +811,8 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
     uo.isHTMLVoidElement = function (elemtype) {
         var voids = ["area", "base", "br", "col", "command", "embed",
                      "hr", "img", "input", "keygen", "link", "menuitem",
-                     "meta", "param", "source", "track", "wbr"];
+                     "meta", "param", "source", "track", "wbr", 
+                     "path", "rect", "circle"];
         elemtype = (uo.safestr(elemtype)).trim().toLowerCase();
         if (voids.indexOf(elemtype) >= 0) {
             return true;

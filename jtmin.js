@@ -313,7 +313,8 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
 
 
     uo.enc = function (val) {
-        val = val || "";
+        if (!val && val !== 0) {
+            val = ""; }
         if (typeof val === "string") {
             val = val.trim();
         }

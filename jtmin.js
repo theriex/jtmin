@@ -238,7 +238,7 @@ var jtminjsDecorateWithUtilities = function (utilityObject) {
         if (node) {
             node.innerHTML = html;
         } else {
-            uo.log("DOM id " + domid + " not available for output");
+            uo.log("DOM id " + domid + " not available for content: " + html);
         }
     };
 
